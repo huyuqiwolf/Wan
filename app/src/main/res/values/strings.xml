@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Wan</string>
+    <string name="menu_home">首页</string>
+    <string name="menu_project">项目</string>
+    <string name="menu_offical_account">公众号</string>
+    <string name="menu_mine">我的</string>
+</resources>
