@@ -4,11 +4,13 @@ import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.RadioGroup;
+import android.widget.Scroller;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -19,18 +21,34 @@ import com.hlox.app.wan.R;
 import com.hlox.app.wan.bean.Banner;
 import com.hlox.app.wan.net.ImageUtils;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * 自定义View，实现无限循环的Banner
  */
-public class LoopBanner extends FrameLayout {
+public class LoopBanner extends FrameLayout implements ViewPager.OnPageChangeListener {
+    private static final int DELAY = 5000;
     private Context mContext;
     private ViewPager mViewPager;
     private Banner mBanner;
     private Adapter mAdapter;
     private Handler mHandler;
+    private int mCurrent;
+    private Runnable mLoop = new Runnable() {
+        @Override
+        public void run() {
+            if(mBanner== null ||mBanner.getData() == null || mBanner.getData().size()<=1){
+                return;
+            }
+            if(mHandler == null || mViewPager == null){
+                return;
+            }
+            mViewPager.setCurrentItem(++mCurrent);
+            mHandler.postDelayed(this,DELAY);
+        }
+    };
 
     public LoopBanner(@NonNull Context context) {
         this(context, null);
@@ -52,6 +70,19 @@ public class LoopBanner extends FrameLayout {
         mViewPager = findViewById(R.id.pager);
         mAdapter = new Adapter(mContext);
         mViewPager.setAdapter(mAdapter);
+        mViewPager.addOnPageChangeListener(this);
+        setSpeed();
+    }
+
+    private void setSpeed() {
+        try {
+            Field mScroller = ViewPager.class.getDeclaredField("mScroller");
+            mScroller.setAccessible(true);
+            mScroller.set(mViewPager,new ViewPagerScroller(mContext));
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            e.printStackTrace();
+        }
+
     }
 
     public void setBanner(Banner banner) {
@@ -60,6 +91,9 @@ public class LoopBanner extends FrameLayout {
         if (data != null) {
             mAdapter.setData(data);
             mAdapter.notifyDataSetChanged();
+            mCurrent = 10000 * data.size();
+            mViewPager.setCurrentItem(mCurrent,false);
+            mHandler.postDelayed(mLoop,DELAY);
         }
     }
 
@@ -71,6 +105,39 @@ public class LoopBanner extends FrameLayout {
             return;
         }
         mAdapter.setListener(listener);
+    }
+
+    @Override
+    public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+
+    }
+
+    @Override
+    public void onPageSelected(int position) {
+        Log.e("TAG", "onPageSelected: "+position );
+        mCurrent = position;
+    }
+
+    @Override
+    public void onPageScrollStateChanged(int state) {
+
+    }
+
+    static class ViewPagerScroller extends Scroller{
+    private int mDuration = 2000;
+        public ViewPagerScroller(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void startScroll(int startX, int startY, int dx, int dy) {
+            super.startScroll(startX, startY, dx, dy,mDuration);
+        }
+
+        @Override
+        public void startScroll(int startX, int startY, int dx, int dy, int duration) {
+            super.startScroll(startX, startY, dx, dy, mDuration);
+        }
     }
 
     static class Adapter extends PagerAdapter {
@@ -89,7 +156,7 @@ public class LoopBanner extends FrameLayout {
 
         @Override
         public int getCount() {
-            return data == null ? 0 : data.size();
+            return data == null ? 0 : Integer.MAX_VALUE;
         }
 
         @Override
@@ -100,7 +167,8 @@ public class LoopBanner extends FrameLayout {
         @NonNull
         @Override
         public Object instantiateItem(@NonNull ViewGroup container, int position) {
-            ImageView imageView = mList.get(position);
+            int temp = position % mList.size();
+            ImageView imageView = mList.get(temp);
             ImageUtils.loadImage(imageView, ((Banner.Data) imageView.getTag()).getImagePath(), mHandler);
             imageView.setOnClickListener(new View.OnClickListener() {
 
@@ -117,8 +185,8 @@ public class LoopBanner extends FrameLayout {
 
         @Override
         public void destroyItem(@NonNull ViewGroup container, int position, @NonNull Object object) {
-            // super.destroyItem(container, position, object);
-            container.removeView(mList.get(position));
+            int temp = position % mList.size();
+            container.removeView(mList.get(temp));
         }
 
         public void setData(List<Banner.Data> data) {
@@ -129,12 +197,22 @@ public class LoopBanner extends FrameLayout {
                 mList = new ArrayList<>();
             }
             if (this.data != null) {
+                ImageView pre = new ImageView(mContext);
+                pre.setTag(this.data.get(this.data.size()-1));
+                pre.setScaleType(ImageView.ScaleType.FIT_XY);
+                mList.add(pre);
+
                 for (int i = 0; i < this.data.size(); i++) {
                     ImageView imageView = new ImageView(mContext);
                     imageView.setScaleType(ImageView.ScaleType.FIT_XY);
                     imageView.setTag(this.data.get(i));
                     mList.add(imageView);
                 }
+
+                ImageView next = new ImageView(mContext);
+                next.setTag(this.data.get(0));
+                next.setScaleType(ImageView.ScaleType.FIT_XY);
+                mList.add(next);
             }
         }
 
