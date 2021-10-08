@@ -2,25 +2,18 @@ package com.hlox.app.wan.net;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.util.Log;
 
-import androidx.viewpager.widget.PagerAdapter;
 
-import com.google.gson.Gson;
-import com.hlox.app.wan.bean.Banner;
 import com.hlox.app.wan.utils.ThreadPool;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Map;
-
-import javax.net.ssl.HttpsURLConnection;
 
 /**
  * 网络请求工具类
@@ -133,7 +126,7 @@ public class HttpClient {
         });
     }
 
-    private static  void doDownloadImage(HttpCallback callback, HttpURLConnection connection) throws IOException {
+    private static void doDownloadImage(HttpCallback callback, HttpURLConnection connection) throws IOException {
         connection.connect();
         int code = connection.getResponseCode();
         if (code == HttpCode.SUCCESS) {
@@ -216,13 +209,9 @@ public class HttpClient {
     private static HttpURLConnection makeConnection(String requestUrl, String method, Map<String, String> headers) throws IOException {
         URL url = new URL(requestUrl);
         HttpURLConnection connection;
-//        if (requestUrl.startsWith("https://")) {
-//            connection = (HttpsURLConnection) url.openConnection();
-//            ((HttpsURLConnection) connection).setRequestMethod(method);
-//        } else
         if (requestUrl.startsWith("http://") || requestUrl.startsWith("https://")) {
             connection = (HttpURLConnection) url.openConnection();
-            ((HttpURLConnection) connection).setRequestMethod(method);
+            connection.setRequestMethod(method);
         } else {
             throw new IllegalArgumentException("only support http or https.");
         }
@@ -233,7 +222,7 @@ public class HttpClient {
                 connection.setRequestProperty(entry.getKey(), entry.getValue());
             }
         }
-        connection.setDoOutput(true);
+        //connection.setDoOutput(true);
         connection.setDoInput(true);
         connection.setUseCaches(false);
         return connection;

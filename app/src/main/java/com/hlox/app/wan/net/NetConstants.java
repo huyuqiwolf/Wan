@@ -42,7 +42,7 @@ public interface NetConstants {
      */
     String BANNER_URL = "https://www.wanandroid.com/banner/json";
     /**
-     * frient site
+     * friend site
      */
     String FRIEDN_SITE = "https://www.wanandroid.com/friend/json";
     /**
